@@ -62,7 +62,7 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
         }
       } while (isValueAvailable && !isValueAvailable(newval) &&
                newval >= i_min);
-      
+
       if (newval < i_min) {
         newval = val;
         killEvents(event);
@@ -163,7 +163,6 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
 
     menuCalibrationState = 0;
     drawScreenIndex(menuIdx(menuTab, curr), menuSize(menuTab, menuTabSize), attr);
-
   }
 
   switch (event) {
@@ -175,7 +174,7 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
       break;
 
     case EVT_KEY_BREAK(KEY_ENTER):
-      if (!menuTab || l_posVert>0) {
+      if (!menuTab || l_posVert > 0) {
         s_editMode = (s_editMode <= 0);
       }
       break;
@@ -187,12 +186,12 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
 
     case EVT_KEY_BREAK(KEY_EXIT):
       AUDIO_KEY_PRESS();
-      if (s_editMode>0) {
+      if (s_editMode > 0) {
         s_editMode = 0;
         break;
       }
 
-      if (l_posVert==0 || !menuTab) {
+      if (l_posVert == 0 || !menuTab) {
         popMenu();  // beeps itself
       }
       else {
@@ -202,20 +201,20 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
       break;
 
     case EVT_KEY_REPT(KEY_RIGHT):  //inc
-      if (l_posHorz==maxcol) break;
+      if (l_posHorz == maxcol) break;
       // no break
 
     case EVT_KEY_FIRST(KEY_RIGHT)://inc
-      if (!horTab || s_editMode>0) break;
+      if (!horTab || s_editMode > 0) break;
       INC(l_posHorz, 0, maxcol);
       break;
 
     case EVT_KEY_REPT(KEY_DOWN):
-      if (l_posVert==maxrow) break;
+      if (l_posVert == maxrow) break;
       // no break
 
     case EVT_KEY_FIRST(KEY_DOWN):
-      if (s_editMode>0) break;
+      if (s_editMode > 0) break;
       do {
         INC(l_posVert, 0, maxrow - 1);
       } while (CURSOR_NOT_ALLOWED_IN_ROW(l_posVert));
@@ -223,20 +222,19 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
       break;
 
     case EVT_KEY_REPT(KEY_LEFT):  //dec
-      if (l_posHorz==0) break;
+      if (l_posHorz == 0) break;
       // no break
 
     case EVT_KEY_FIRST(KEY_LEFT)://dec
-      if (!horTab || s_editMode>0) break;
+      if (!horTab || s_editMode > 0) break;
       DEC(l_posHorz, 0, maxcol);
       break;
 
     case EVT_KEY_REPT(KEY_UP):
-      if (l_posVert==0) break;
+      if (l_posVert == 0) break;
       // no break
     case EVT_KEY_FIRST(KEY_UP):
-      if (s_editMode>0) break;
-
+      if (s_editMode > 0) break;
       do {
         DEC(l_posVert, 0, maxrow - 1);
       } while (CURSOR_NOT_ALLOWED_IN_ROW(l_posVert));
