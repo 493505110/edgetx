@@ -19,31 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
-#include "navigation.h"
-
-#include "switches.h"
-
-vertpos_t menuVerticalOffset;
-vertpos_t menuVerticalPosition;
-horzpos_t menuHorizontalPosition;
-
-int8_t s_editMode;
-uint8_t noHighlightCounter;
-uint8_t menuCalibrationState;
-
-int8_t  checkIncDec_Ret;
-
-INIT_STOPS(stops100, 3, -100, 0, 100)
-INIT_STOPS(stops1000, 3, -1000, 0, 1000)
-INIT_STOPS(stopsSwitch, 15, SWSRC_FIRST,
-           CATEGORY_END(-SWSRC_FIRST_LOGICAL_SWITCH),
-           CATEGORY_END(-SWSRC_FIRST_TRIM),
-           CATEGORY_END(-SWSRC_LAST_SWITCH + 1), 0,
-           CATEGORY_END(SWSRC_LAST_SWITCH), CATEGORY_END(SWSRC_FIRST_TRIM - 1),
-           CATEGORY_END(SWSRC_FIRST_LOGICAL_SWITCH - 1), SWSRC_LAST)
-
-extern int checkIncDecSelection;
+#define POS_HORZ_INIT(posVert)         0
 
 int checkIncDec(event_t event, int val, int i_min, int i_max,
                 unsigned int i_flags, IsValueAvailable isValueAvailable,
@@ -52,6 +28,13 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
   int newval = val;
 
   if (s_editMode > 0) {
+    bool invert = false;
+    if ((i_flags & INCDEC_SOURCE_INVERT) && (newval < 0)) {
+      invert = true;
+      newval = -newval;
+      val = -val;
+    }
+
     if (event == EVT_KEY_FIRST(KEY_UP) || event == EVT_KEY_REPT(KEY_UP) ||
         event == EVT_KEY_FIRST(KEY_RIGHT) || event == EVT_KEY_REPT(KEY_RIGHT)) {
       do {
@@ -109,6 +92,11 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
 #endif
     }
 #endif
+
+    if (invert) {
+      newval = -newval;
+      val = -val;
+    }
   }
 
   if (i_min == 0 && i_max == 1 &&
@@ -116,6 +104,8 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
     s_editMode = 0;
     newval = !val;
   }
+
+  newval = showPopupMenus(event, newval, i_min, i_max, i_flags, isValueAvailable);
 
   if (newval != val) {
     if (!(i_flags & NO_INCDEC_MARKS) && (newval != i_max) &&
@@ -137,50 +127,6 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
   }
 
   return newval;
-}
-
-#define SCROLL_POT1_TH 32
-
-#define CURSOR_NOT_ALLOWED_IN_ROW(row) ((int8_t)MAXCOL(row) < 0)
-
-#define INC(val, min, max)             if (val<max) {val++;} else {val=min;}
-#define DEC(val, min, max)             if (val>min) {val--;} else {val=max;}
-
-tmr10ms_t menuEntryTime;
-
-#define MAXCOL_RAW(row)                (horTab ? *(horTab+min(row, (vertpos_t)horTabMax)) : (const uint8_t)0)
-#define MAXCOL(row)                    (MAXCOL_RAW(row) >= HIDDEN_ROW ? MAXCOL_RAW(row) : (const uint8_t)(MAXCOL_RAW(row) & (~NAVIGATION_LINE_BY_LINE)))
-#define POS_HORZ_INIT(posVert)         0
-
-uint8_t chgMenu(uint8_t curr, const MenuHandler * menuTab, uint8_t menuTabSize, int direction)
-{
-  int cc = curr + direction;
-  while (cc != curr) {
-    if (cc < 0)
-      cc = menuTabSize - 1;
-    else if (cc >= menuTabSize)
-      cc = 0;
-    if (menuTab[cc].isEnabled())
-      return cc;
-    cc += direction;
-  }
-  return curr;
-}
-
-uint8_t menuSize(const MenuHandler * menuTab, uint8_t menuTabSize)
-{
-  uint8_t sz = 0;
-  for (int i = 0; i < menuTabSize; i += 1) {
-    if (menuTab[i].isEnabled()) {
-      sz += 1;
-    }
-  }
-  return sz;
-}
-
-uint8_t menuIdx(const MenuHandler * menuTab, uint8_t curr)
-{
-  return menuSize(menuTab, curr + 1) - 1;
 }
 
 void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
