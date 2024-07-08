@@ -70,28 +70,7 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
       }
     }
 
-#if defined(AUTOSWITCH)
-    if (i_flags & INCDEC_SWITCH) {
-      newval = checkIncDecMovedSwitch(newval);
-    }
-#endif
-
-#if defined(AUTOSOURCE)
-    if (i_flags & INCDEC_SOURCE) {
-      int8_t source = GET_MOVED_SOURCE(i_min, i_max);
-      if (source) {
-        newval = source;
-      }
-#if defined(AUTOSWITCH)
-      else {
-        uint8_t swtch = abs(getMovedSwitch());
-        if (swtch && !IS_SWITCH_MULTIPOS(swtch)) {
-          newval = switchToMix(swtch);
-        }
-      }
-#endif
-    }
-#endif
+    newval = checkMovedInput(newval, i_min, i_max, i_flags);
 
     if (invert) {
       newval = -newval;
@@ -99,32 +78,11 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
     }
   }
 
-  if (i_min == 0 && i_max == 1 &&
-      (event == EVT_KEY_BREAK(KEY_ENTER))) {
-    s_editMode = 0;
-    newval = !val;
-  }
+  newval = checkBoolean(event, i_min, i_max, newval, val);
 
   newval = showPopupMenus(event, newval, i_min, i_max, i_flags, isValueAvailable);
 
-  if (newval != val) {
-    if (!(i_flags & NO_INCDEC_MARKS) && (newval != i_max) &&
-        (newval != i_min) && stops.contains(newval)) {
-      bool pause = (newval > val ? !stops.contains(newval + 1)
-                                 : !stops.contains(newval - 1));
-      if (pause) {
-        pauseEvents(event);  // delay before auto-repeat continues
-      }
-    }
-    if (!IS_KEY_REPT(event)) {
-      AUDIO_KEY_PRESS();
-    }
-    storageDirty(i_flags & (EE_GENERAL|EE_MODEL));
-    checkIncDec_Ret = (newval > val ? 1 : -1);
-  }
-  else {
-    checkIncDec_Ret = 0;
-  }
+  finishCheckIncDec(event, i_min, i_max, i_flags, newval, val, stops);
 
   return newval;
 }
@@ -270,7 +228,11 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
   uint8_t maxLines = menuTab ? LCD_LINES-1 : LCD_LINES-2;
 
   int linesCount = maxrow;
-  if (l_posVert == 0 || (l_posVert==1 && MAXCOL(vertpos_t(0)) >= HIDDEN_ROW) || (l_posVert==2 && MAXCOL(vertpos_t(0)) >= HIDDEN_ROW && MAXCOL(vertpos_t(1)) >= HIDDEN_ROW)) {
+
+  if (l_posVert == 0 || 
+      (l_posVert==1 && MAXCOL(vertpos_t(0)) >= HIDDEN_ROW) ||
+      (l_posVert==2 && MAXCOL(vertpos_t(0)) >= HIDDEN_ROW &&
+       MAXCOL(vertpos_t(1)) >= HIDDEN_ROW)) {
     menuVerticalOffset = 0;
     if (horTab) {
       linesCount = 0;
@@ -280,8 +242,7 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
         }
       }
     }
-  }
-  else if (horTab) {
+  } else if (horTab) {
     if (maxrow > maxLines) {
       while (1) {
         vertpos_t firstLine = 0;
@@ -315,8 +276,7 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
         }
       }
     }
-  }
-  else {
+  } else {
     if (l_posVert>maxLines+menuVerticalOffset) {
       menuVerticalOffset = l_posVert-maxLines;
     }
